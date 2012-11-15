@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Created-By: 1.6.0 (Sun Microsystems Inc.)
+Main-Class: NettyServer
+Class-Path: netty-3.5.10.Final.jar jackson-core-2.1.1.jar jackson-databind-2.1.1.jar jackson-annotations-2.1.1.jar
+
+
+
+
+
+
+
