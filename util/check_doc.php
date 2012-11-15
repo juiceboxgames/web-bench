@@ -2,8 +2,6 @@
 
 require '../php/predis/lib/Predis.php';
 
-//$document = json_decode(file_get_contents("tiny.json"), true);
-$document = json_decode(file_get_contents("document.json"), true);
 
 // simple set and get scenario
 
@@ -15,7 +13,8 @@ $single_server = array(
 
 $redis = new Predis_Client($single_server);
 
-//print_r($document);
 
-$redis->set('user_data', json_encode($document));
-//print_r($retval);
+
+$result = $redis->get('user_data');
+echo strlen($result) . "\n";
+
