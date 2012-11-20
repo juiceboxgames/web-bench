@@ -1,0 +1,15 @@
+---
+max_conns: 1024
+require: []
+
+wait: 30
+timeout: 30
+chdir: /var/www/html/ruby/blog
+log: log/thin.log
+daemonize: true
+pid: tmp/pids/thin.pid
+environment: development
+max_persistent_conns: 512
+port: 10000
+address: 0.0.0.0
+servers: 16

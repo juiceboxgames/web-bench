@@ -116,14 +116,14 @@ public class NettyServerHandler extends SimpleChannelUpstreamHandler {
             buf.setLength(0);
             buf.append("Netty Test\r\n");
 
-            Future<String> get = m_async.get("user_data");
+            Future<String> get = m_async.get("user_data_java");
 
             m_async.awaitAll(get);
             String raw = get.get();
-            raw = decompress(raw);
-            ObjectMapper m = new ObjectMapper();
-            JsonNode tree = m.readTree(raw);
-            JsonNode currVal = (JsonNode)tree.path("TWIDDLE");
+            //raw = decompress(raw);
+            //ObjectMapper m = new ObjectMapper();
+            //JsonNode tree = m.readTree(raw);
+            //JsonNode currVal = (JsonNode)tree.path("TWIDDLE");
             //ValueNode newVal = new ValueNode();
             //buf.append("Curr Val: " + currVal.longValue());
             ///Random rn = new Random();
@@ -136,9 +136,9 @@ public class NettyServerHandler extends SimpleChannelUpstreamHandler {
                 }
             }
 
-            String jsonEncoded = m.writeValueAsString(tree);
-            String compressed = compress(jsonEncoded);
-            Future<String> set = m_async.set("user_data", compressed);
+            //String jsonEncoded = m.writeValueAsString(tree);
+            //String compressed = compress(jsonEncoded);
+            Future<String> set = m_async.set("user_data_java", raw);
             m_async.awaitAll(set);
             //buf.append("jsonEncoded:" + jsonEncoded);
             //buf.append("compressed:" + compressed);

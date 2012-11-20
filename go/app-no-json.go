@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/zlib"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -11,9 +11,36 @@ import (
 	"redis"
 	"bufio"
 	"os"
+	//"io"
 	"io/ioutil"
 	"runtime"
 )
+
+type ClientPool struct {
+	size int
+	clientChan chan redis.AsyncClient
+}
+
+func NewClientPool(size int) *ClientPool {
+	p := &ClientPool{size: size}
+	p.clientChan = make(chan redis.AsyncClient, size)
+	for i := 0; i < size; i++ {
+		client := NewRedisAsyncClient()
+		p.clientChan <- client
+	}
+	return p
+}
+
+func (p *ClientPool) Get() redis.AsyncClient {
+	return <-p.clientChan
+}
+
+func (p *ClientPool) Release(c redis.AsyncClient) {
+	p.clientChan <- c
+}
+
+var pool *ClientPool
+
 
 var loadtimeout uint64 = 0
 var savetimeout uint64 = 0
@@ -33,17 +60,20 @@ func load(r redis.AsyncClient, k string, w http.ResponseWriter) (obj interface{}
 		fmt.Fprintf(w, "Save failed for %s", key);
 		return
 	}
-	zr, err := zlib.NewReader(bytes.NewReader(val))
-	if err != nil {
-		log.Fatal("Failed to create zlib reader with error: ", err)
+	setPromise, srerr := r.Set(key, val)
+	if srerr != nil {
+		panic(rerr)
 	}
-	defer zr.Close()
-	jd := json.NewDecoder(zr)
-	err = jd.Decode(&obj)
-	if err != nil {
-		log.Fatal("Failed to decode json with error: ", err)
+	_, grerr, timeout := setPromise.TryGet(50000000000)
+	if grerr != nil {
+		panic(rerr)
 	}
-	return
+	if timeout {
+		savetimeout++
+		log.Println("save timeout! count: ", savetimeout)
+		fmt.Fprintf(w, "Save failed for %s", key);
+	}
+	return;
 }
 
 func compute() {
@@ -57,34 +87,6 @@ func compute() {
 	//log.Println("Math Done")
 }
 
-func save(r redis.AsyncClient, key string, obj interface{}, w http.ResponseWriter) {
-	var b bytes.Buffer
-
-	z := zlib.NewWriter(&b)
-	defer z.Close()
-
-	je := json.NewEncoder(z)
-
-	err := je.Encode(obj)
-	if err != nil {
-		log.Fatal("Failed to json Encode with error: ", err)
-	}
-	z.Flush()
-
-	f, rerr := r.Set(key, b.Bytes())
-	if rerr != nil {
-		panic(rerr)
-	}
-	_, rerr, timeout := f.TryGet(50000000000)
-	if rerr != nil {
-		panic(rerr)
-	}
-	if timeout {
-		savetimeout++
-		log.Println("save timeout! count: ", savetimeout)
-		fmt.Fprintf(w, "Save failed for %s", key);
-	}
-}
 
 type User struct {
 	Id      uint64
@@ -125,12 +127,14 @@ func NewUser() *User {
 var obj interface{}
 var key string
 
-func responseHandler(w http.ResponseWriter, r *http.Request, client redis.AsyncClient) {
-	obj = load(client, key, w)
+func responseHandler(w http.ResponseWriter, r *http.Request) {
+	client := pool.Get()
+    defer pool.Release(client)
+	load(client, key, w)
 	//log.Print(obj)
 	compute()
 	//obj = NewUser()
-	save(client, key, obj, w)
+	//save(client, key, zr, w)
 	fmt.Fprintf(w, "OK! %s", key)
 }
 
@@ -138,17 +142,29 @@ func main() {
 	runtime.GOMAXPROCS(16)
 	key = "user_data_2"
 	spec := redis.DefaultSpec().Db(0).Host("10.174.178.235")
+	primeClient, err := redis.NewAsynchClientWithSpec(spec)
+	if err != nil {
+		panic(err)
+	}
+	primeKey(key, primeClient)
+	log.Println("Key primed and ready");
+	defer primeClient.Quit()
+	pool = NewClientPool(100)
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		responseHandler(w, r)
+	}
+	http.HandleFunc("/", handler)
+	http.ListenAndServe(":80", nil)
+}
+
+
+func NewRedisAsyncClient() redis.AsyncClient {
+	spec := redis.DefaultSpec().Db(0).Host("10.174.178.235")
 	client, err := redis.NewAsynchClientWithSpec(spec)
 	if err != nil {
 		panic(err)
 	}
-	primeKey(key, client)
-	defer client.Quit()
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		responseHandler(w, r, client)
-	}
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":80", nil)
+	return client
 }
 
 func primeKey(key string, r redis.AsyncClient){
@@ -173,6 +189,6 @@ func primeKey(key string, r redis.AsyncClient){
 		}
 		if timeout {
 			savetimeout++
-			log.Println("save timeout! count: ", savetimeout)
+			log.Println("load timeout! count: ", savetimeout)
 		}
 }

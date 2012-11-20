@@ -21,20 +21,19 @@ if (cluster.isMaster) {
     var server = restify.createServer();
     function respond(req, res, next) {
 
-        /*
-        client.get("user_data", function (err, val) {
+        /**
+        client.get("user_data_node", function (err, val) {
             zlib.gzip(val, function (gzErr, compressed){
-                   client.set("user_data", compressed, function (setResult, setTruthy){
+                   client.set("user_data_node", compressed, function (setResult, setTruthy){
                        res.send("Set result correctly");
                    });
             });
         });
         */
 
-        client.get("user_data", function (err, val) {
+        client.get("user_data_node", function (err, val) {
             zlib.gunzip(val, function (gzErr, uncompressed){
                  doc = JSON.parse(uncompressed);
-                 doc.TWIDDLE = Math.floor(30000 * Math.random());
                  for(i = 0; i < 100; i++){
                      for(j = 0; j < 100; j++){
                         k = Math.sin(i) * Math.tan(j);
@@ -42,7 +41,7 @@ if (cluster.isMaster) {
                  }
                  jsonDoc = JSON.stringify(doc);
                  zlib.gzip(jsonDoc, function (gzErr, compressed){
-                    client.set("user_data", compressed, function (setResult, setTruthy){
+                    client.set("user_data_node", compressed, function (setResult, setTruthy){
                         res.send("OK");
                     });
                 });

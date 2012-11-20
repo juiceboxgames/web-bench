@@ -15,6 +15,6 @@ $redis = new Predis_Client($single_server);
 
 
 
-$result = $redis->get('user_data');
+$result = $redis->get('user_data_2');
 echo strlen($result) . "\n";
 

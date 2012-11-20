@@ -17,5 +17,5 @@ $redis = new Predis_Client($single_server);
 
 //print_r($document);
 
-$redis->set('user_data', json_encode($document));
+$redis->set('user_data_node', json_encode($document));
 //print_r($retval);

@@ -13,6 +13,7 @@ $single_server = array(
 $redis = new Predis_Client($single_server);
 
 $retval = $redis->get('user_data');
+/*
 $raw = gzuncompress($retval);
 $document = json_decode($raw, true);
 $document['TWIDDLE'] = mt_rand(0, 10000);
@@ -21,8 +22,11 @@ for($i = 0; $i < 100; $i++){
 		$k = sin($i) * tan($j);
 	}
 }
+*/
 //echo "Len: " . strlen($raw) . " new val : " . $document['TWIDDLE'];
 //print_r(json_encode($document));
-$retval = $redis->set('user_data', gzcompress(json_encode($document)));
+
+//$retval = $redis->set('user_data', gzcompress(json_encode($document)));
+$redis->set('user_data', $retval);
 echo "OK\n";
 //print_r($retval);
